@@ -757,23 +757,16 @@ class _ComponentState extends State<Component> with LogHelperMixin {
 
   @override
   Widget build(BuildContext context) {
-    Widget child = Image.memory(widget.data);
+    Widget child = SizedBox.fromSize(
+      size: widget.size,
+      child: Image.memory(widget.data),
+    );
 
     if (widget.isSelected) {
-      child = DecoratedBox(
-        position: DecorationPosition.foreground,
-        decoration: BoxDecoration(
-          border: Border.all(),
-        ),
-        child: child,
-      );
       child = Draggable<String>(
         feedback: Opacity(
           opacity: 0.5,
-          child: SizedBox.fromSize(
-            size: widget.size,
-            child: child,
-          ),
+          child: child,
         ),
         child: child,
         childWhenDragging: const SizedBox.shrink(),
@@ -781,6 +774,13 @@ class _ComponentState extends State<Component> with LogHelperMixin {
           widget.onDrag(details.offset + widget.size.center(Offset.zero));
         },
         hitTestBehavior: HitTestBehavior.opaque,
+      );
+      child = DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          border: Border.all(),
+        ),
+        child: child,
       );
     } else {
       child = GestureDetector(
@@ -792,6 +792,7 @@ class _ComponentState extends State<Component> with LogHelperMixin {
     return SizedBox.fromSize(
       size: widget.size,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           child,
           if (widget.isSelected) ..._buildResizables(),
