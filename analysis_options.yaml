@@ -1,0 +1,20 @@
+include: package:lint/analysis_options.yaml
+
+analyzer:
+  exclude:
+    [
+      build/**,
+      lib/**.freezed.dart,
+      lib/**.g.dart,
+      lib/generated_plugin_registrant.dart,
+    ]
+
+linter:
+  rules:
+    sort_pub_dependencies: false
+    avoid_classes_with_only_static_members: false
+    sort_child_properties_last: false
+    directives_ordering: false
+    avoid_setters_without_getters: false
+    unreachable_from_main: false
+    combinators_ordering: false

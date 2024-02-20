@@ -1,0 +1,23 @@
+name: visuals_tester
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.2.6 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  #flame: ^1.15.0
+  #flame_svg: ^1.9.0
+  file_picker: ^6.1.1
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lint: ^2.3.0
+
+flutter:
+  uses-material-design: true
