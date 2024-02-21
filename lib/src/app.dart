@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 part 'world.dart';
@@ -40,7 +41,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
+  late final TransformationController _transformationController;
+
   final Map<String, (ImageInfo, Offset)> _components = {};
+
   ImageInfo? __worldFile;
 
   ImageInfo? get _worldFile => __worldFile;
@@ -87,6 +91,7 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
   void initState() {
     super.initState();
     _focusNode = FocusNode();
+    _transformationController = TransformationController();
     initializeFireOnCalm(
       calmDownTime: const Duration(milliseconds: 300),
       callbackOnCalm: () async {
@@ -101,6 +106,7 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
   @override
   void dispose() {
     _focusNode.dispose();
+    _transformationController.dispose();
     super.dispose();
   }
 
@@ -109,6 +115,35 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
     if (event.physicalKey == PhysicalKeyboardKey.space) {
       _panEnabled = true;
       notCalm();
+      return;
+    }
+
+    if (_selectedComponent != null) {
+      final ui.Offset? selectedComponentPosition =
+          _components[_selectedComponent]?.$2;
+
+      if (selectedComponentPosition != null) {
+        switch (event.logicalKey) {
+          case LogicalKeyboardKey.arrowUp:
+            _onSelectedComponentPositionYChanged(
+              selectedComponentPosition.dy - 1,
+            );
+          case LogicalKeyboardKey.arrowDown:
+            _onSelectedComponentPositionYChanged(
+              selectedComponentPosition.dy + 1,
+            );
+          case LogicalKeyboardKey.arrowLeft:
+            _onSelectedComponentPositionXChanged(
+              selectedComponentPosition.dx - 1,
+            );
+          case LogicalKeyboardKey.arrowRight:
+            _onSelectedComponentPositionXChanged(
+              selectedComponentPosition.dx + 1,
+            );
+          case LogicalKeyboardKey.delete:
+            _onSelectedItemDelete();
+        }
+      }
     }
   }
 
@@ -178,6 +213,57 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
     return files;
   }
 
+  void _onSelectedComponentPositionXChanged(double x) {
+    _components.update(
+      _selectedComponent!,
+      (value) {
+        return (value.$1, Offset(x, value.$2.dy));
+      },
+    );
+
+    setState(() {});
+  }
+
+  void _onSelectedComponentPositionYChanged(double y) {
+    _components.update(
+      _selectedComponent!,
+      (value) {
+        return (value.$1, Offset(value.$2.dx, y));
+      },
+    );
+
+    setState(() {});
+  }
+
+  void _onSelectedComponentSizeXChanged(double x) {
+    _components.update(
+      _selectedComponent!,
+      (value) {
+        final Size newSize = value.$1.size.resizeKeepingAspectRatioForWidth(x);
+        return (value.$1.copyWith(size: newSize), value.$2);
+      },
+    );
+
+    setState(() {});
+  }
+
+  void _onSelectedComponentSizeYChanged(double y) {
+    _components.update(
+      _selectedComponent!,
+      (value) {
+        final Size newSize = value.$1.size.resizeKeepingAspectRatioForHeight(y);
+        return (value.$1.copyWith(size: newSize), value.$2);
+      },
+    );
+
+    setState(() {});
+  }
+
+  void _onSelectedItemDelete() {
+    _components.remove(_selectedComponent);
+    _selectedComponent = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size size = _worldFile?.size ?? MediaQuery.of(context).size;
@@ -188,6 +274,7 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
       fit: StackFit.expand,
       children: [
         InteractiveViewer(
+          transformationController: _transformationController,
           alignment: Alignment.topLeft,
           clipBehavior: Clip.antiAlias,
           panEnabled: _panEnabled,
@@ -196,6 +283,7 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
             size: size,
             child: KeyboardListener(
               focusNode: _focusNode,
+              autofocus: true,
               onKeyEvent: _onKeyEvent,
               child: GestureDetector(
                 onTap: () {
@@ -226,6 +314,8 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
                             ),
                             child: Component(
                               key: ValueKey<String>(entry.key),
+                              transformationController:
+                                  _transformationController,
                               data: entry.value.$1.data,
                               size: entry.value.$1.size,
                               isSelected: _selectedComponent == entry.key,
@@ -272,54 +362,11 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
               id: _selectedComponent!,
               size: selectedData!.$1.size,
               offset: selectedData.$2,
-              onPositionXChanged: (x) {
-                _components.update(
-                  _selectedComponent!,
-                  (value) {
-                    return (value.$1, Offset(x, value.$2.dy));
-                  },
-                );
-
-                setState(() {});
-              },
-              onPositionYChanged: (y) {
-                _components.update(
-                  _selectedComponent!,
-                  (value) {
-                    return (value.$1, Offset(value.$2.dx, y));
-                  },
-                );
-
-                setState(() {});
-              },
-              onSizeXChanged: (x) {
-                _components.update(
-                  _selectedComponent!,
-                  (value) {
-                    final Size newSize =
-                        value.$1.size.resizeKeepingAspectRatioForWidth(x);
-                    return (value.$1.copyWith(size: newSize), value.$2);
-                  },
-                );
-
-                setState(() {});
-              },
-              onSizeYChanged: (y) {
-                _components.update(
-                  _selectedComponent!,
-                  (value) {
-                    final Size newSize =
-                        value.$1.size.resizeKeepingAspectRatioForHeight(y);
-                    return (value.$1.copyWith(size: newSize), value.$2);
-                  },
-                );
-
-                setState(() {});
-              },
-              onDelete: () {
-                _components.remove(_selectedComponent);
-                _selectedComponent = null;
-              },
+              onPositionXChanged: _onSelectedComponentPositionXChanged,
+              onPositionYChanged: _onSelectedComponentPositionYChanged,
+              onSizeXChanged: _onSelectedComponentSizeXChanged,
+              onSizeYChanged: _onSelectedComponentSizeYChanged,
+              onDelete: _onSelectedItemDelete,
             ),
           ),
 
@@ -328,16 +375,18 @@ class _HomeState extends State<Home> with FireOnCalm, LogHelperMixin {
           Align(
             alignment: const Alignment(-0.4, 0.95),
             child: IconButton(
+              color: Colors.white,
               tooltip: "Add World",
-              icon: const Icon(Icons.wordpress_outlined),
+              icon: const FaIcon(FontAwesomeIcons.globe),
               onPressed: _onAddWorld,
             ),
           ),
           Align(
             alignment: const Alignment(0.6, 0.95),
             child: IconButton(
+              color: Colors.white,
               tooltip: "Add Component",
-              icon: const Icon(Icons.insert_photo_rounded),
+              icon: const FaIcon(FontAwesomeIcons.buildingUser),
               onPressed: _onAddComponent,
             ),
           ),
@@ -602,6 +651,7 @@ class _LittleButton extends StatelessWidget {
 }
 
 class Component extends StatefulWidget {
+  final TransformationController transformationController;
   final Uint8List data;
   final Size size;
   final bool isSelected;
@@ -611,6 +661,7 @@ class Component extends StatefulWidget {
 
   const Component({
     required super.key,
+    required this.transformationController,
     required this.data,
     required this.size,
     required this.isSelected,
@@ -766,7 +817,16 @@ class _ComponentState extends State<Component> with LogHelperMixin {
       child = Draggable<String>(
         feedback: Opacity(
           opacity: 0.5,
-          child: child,
+          child: ValueListenableBuilder<Matrix4>(
+            valueListenable: widget.transformationController,
+            builder: (context, value, _) {
+              return Transform(
+                alignment: Alignment.center,
+                transform: value,
+                child: child,
+              );
+            },
+          ),
         ),
         child: child,
         childWhenDragging: const SizedBox.shrink(),
@@ -776,7 +836,7 @@ class _ComponentState extends State<Component> with LogHelperMixin {
         hitTestBehavior: HitTestBehavior.opaque,
       );
       child = DecoratedBox(
-        position: DecorationPosition.foreground,
+        //position: DecorationPosition.background,
         decoration: BoxDecoration(
           border: Border.all(),
         ),
